@@ -185,7 +185,11 @@ export default async function fetch(url, options_) {
 				});
 			}
 
-			let body = pump(response_, new PassThrough(), reject);
+			let body = pump(response_, new PassThrough(), err => {
+				if (err) {
+					reject(err);
+				}
+			});
 			// see https://github.com/nodejs/node/pull/29376
 			if (process.version < 'v12.10') {
 				response_.on('aborted', abortAndFinalize);
@@ -251,6 +255,13 @@ export default async function fetch(url, options_) {
 
 					response = new Response(body, responseOptions);
 					resolve(response);
+				});
+				raw.once('end', () => {
+					// some old IIS servers return zero-length OK deflate responses, so 'data' is never emitted.
+					if (!response) {
+						response = new Response(body, responseOptions);
+						resolve(response);
+					}
 				});
 				return;
 			}
