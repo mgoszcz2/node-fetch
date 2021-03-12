@@ -70,6 +70,10 @@ export default class TestServer {
 			res.end('text');
 		}
 
+		if (p === '/no-status-text') {
+			res.writeHead(200, '', {}).end();
+		}
+
 		if (p === '/options') {
 			res.statusCode = 200;
 			res.setHeader('Allow', 'GET, HEAD, OPTIONS');
@@ -295,6 +299,11 @@ export default class TestServer {
 			res.end();
 		}
 
+		if (p === '/redirect/bad-location') {
+			res.socket.write('HTTP/1.1 301\r\nLocation: ☃\r\nContent-Length: 0\r\n');
+			res.socket.end('\r\n');
+		}
+
 		if (p === '/error/400') {
 			res.statusCode = 400;
 			res.setHeader('Content-Type', 'text/plain');
@@ -323,6 +332,23 @@ export default class TestServer {
 			setTimeout(() => {
 				res.destroy();
 			}, 100);
+		}
+
+		if (p === '/error/premature/chunked') {
+			res.writeHead(200, {
+				'Content-Type': 'application/json',
+				'Transfer-Encoding': 'chunked'
+			});
+
+			res.write(`${JSON.stringify({data: 'hi'})}\n`);
+
+			setTimeout(() => {
+				res.write(`${JSON.stringify({data: 'bye'})}\n`);
+			}, 200);
+
+			setTimeout(() => {
+				res.destroy();
+			}, 400);
 		}
 
 		if (p === '/error/json') {
